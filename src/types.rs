@@ -7,7 +7,9 @@ pub struct Error {
 
 impl Error {
     pub fn new<T: Into<String>>(msg: T) -> Self {
-        Error { message: msg.into() }
+        Error {
+            message: msg.into(),
+        }
     }
 }
 
@@ -20,3 +22,38 @@ impl fmt::Display for Error {
 
 // Implement the std::error::Error trait
 impl std::error::Error for Error {}
+
+#[derive(Debug, Clone)]
+pub struct SessionDetails {
+    id: i64,
+    realm: String,
+    authid: String,
+    auth_role: String,
+}
+
+impl SessionDetails {
+    pub fn new(id: i64, realm: String, authid: String, auth_role: String) -> Self {
+        Self {
+            id,
+            realm,
+            authid,
+            auth_role,
+        }
+    }
+
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+
+    pub fn realm(&self) -> String {
+        self.realm.clone()
+    }
+
+    pub fn authid(&self) -> String {
+        self.authid.clone()
+    }
+
+    pub fn auth_role(&self) -> String {
+        self.auth_role.clone()
+    }
+}
