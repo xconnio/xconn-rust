@@ -1,6 +1,12 @@
 [package]
-name = "xconn-rust"
+name = "xconn"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+wampproto = { git = "ssh://git@github.com/xconnio/wampproto-rust.git", rev = "afcd2781d3ef1c3eaf4b31125a7356be2f1c560a" }
+
+# sync websocket
+tungstenite = {  version = "0.27.0", features = ["native-tls"] }
+nix = { version = "0.30.1", features = ["poll"] }
+http = "1.3.1"
