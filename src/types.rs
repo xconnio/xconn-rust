@@ -1,4 +1,9 @@
 use std::fmt;
+use std::fmt::Debug;
+use wampproto::serializers::cbor::CBORSerializer;
+use wampproto::serializers::json::JSONSerializer;
+use wampproto::serializers::msgpack::MsgPackSerializer;
+use wampproto::serializers::serializer::Serializer;
 
 #[derive(Debug)]
 pub struct Error {
@@ -7,9 +12,7 @@ pub struct Error {
 
 impl Error {
     pub fn new<T: Into<String>>(msg: T) -> Self {
-        Error {
-            message: msg.into(),
-        }
+        Error { message: msg.into() }
     }
 }
 
@@ -55,5 +58,62 @@ impl SessionDetails {
 
     pub fn auth_role(&self) -> String {
         self.auth_role.clone()
+    }
+}
+
+pub trait WSSerializerSpec: Debug + Sync + Send {
+    fn subprotocol(&self) -> String;
+    fn serializer(&self) -> Box<dyn Serializer>;
+    fn is_binary(&self) -> bool;
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct JSONSerializerSpec;
+
+impl WSSerializerSpec for JSONSerializerSpec {
+    fn subprotocol(&self) -> String {
+        "wamp.2.json".to_string()
+    }
+
+    fn serializer(&self) -> Box<dyn Serializer> {
+        Box::new(JSONSerializer {})
+    }
+
+    fn is_binary(&self) -> bool {
+        false
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CBORSerializerSpec;
+
+impl WSSerializerSpec for CBORSerializerSpec {
+    fn subprotocol(&self) -> String {
+        "wamp.2.cbor".to_string()
+    }
+
+    fn serializer(&self) -> Box<dyn Serializer> {
+        Box::new(CBORSerializer {})
+    }
+
+    fn is_binary(&self) -> bool {
+        true
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct MsgPackSerializerSpec;
+
+impl WSSerializerSpec for MsgPackSerializerSpec {
+    fn subprotocol(&self) -> String {
+        "wamp.2.msgpack".to_string()
+    }
+
+    fn serializer(&self) -> Box<dyn Serializer> {
+        Box::new(MsgPackSerializer {})
+    }
+
+    fn is_binary(&self) -> bool {
+        true
     }
 }
