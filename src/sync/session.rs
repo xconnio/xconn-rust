@@ -39,6 +39,7 @@ pub struct Session {
 
     state: Arc<State>,
     goodbye_receiver_channel: Mutex<mpsc::Receiver<()>>,
+    exist_receiver_channel: Mutex<mpsc::Receiver<()>>,
 }
 
 struct State {
@@ -87,6 +88,7 @@ impl Session {
         let thread_peer = stored_peer.clone();
 
         let (goodbye_sender, goodbye_receiver): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel();
+        let (exit_sender, exit_receiver): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel();
 
         thread::spawn(move || {
             while let Ok(payload) = thread_peer.read() {
@@ -98,6 +100,7 @@ impl Session {
                             thread_proto.clone(),
                             thread_peer.clone(),
                             goodbye_sender.clone(),
+                            exit_sender.clone(),
                         );
                     }
                     Err(e) => {
@@ -116,6 +119,7 @@ impl Session {
 
             state: stored_state,
             goodbye_receiver_channel: Mutex::new(goodbye_receiver),
+            exist_receiver_channel: Mutex::new(exit_receiver),
         }
     }
 
@@ -125,6 +129,7 @@ impl Session {
         proto: Arc<ProtoSession>,
         peer: Arc<Box<dyn Peer>>,
         goodbye_sender: mpsc::Sender<()>,
+        exist_sender: mpsc::Sender<()>,
     ) {
         match msg.message_type() {
             MESSAGE_TYPE_REGISTERED => {
@@ -322,6 +327,8 @@ impl Session {
                 if *goodbye_was_sent {
                     goodbye_sender.send(()).unwrap();
                 }
+
+                exist_sender.send(()).unwrap();
             }
             _ => {}
         }
@@ -515,5 +522,9 @@ impl Session {
             }
             Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
         }
+    }
+
+    pub fn wait_disconnect(&self) {
+        self.exist_receiver_channel.lock().unwrap().recv().unwrap();
     }
 }
