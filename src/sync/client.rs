@@ -1,4 +1,4 @@
-use crate::sync::peer::joiner::WebSocketJoiner;
+use crate::sync::joiner::WebSocketJoiner;
 use crate::sync::session::Session;
 use crate::types::{JSONSerializerSpec, WSSerializerSpec};
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
