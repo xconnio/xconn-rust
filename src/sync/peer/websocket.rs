@@ -1,5 +1,5 @@
 use crate::sync::peer::peer::Peer;
-use crate::types::{Error, TransportType, TRANSPORT_WEB_SOCKET};
+use crate::types::{Error, TRANSPORT_WEB_SOCKET, TransportType};
 use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
 use std::fmt::Debug;
 use std::net::TcpStream;
