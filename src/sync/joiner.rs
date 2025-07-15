@@ -1,5 +1,5 @@
-use crate::sync::peer::peer::Peer;
-use crate::sync::peer::websocket::WebSocketPeer;
+use crate::sync::peer::Peer;
+use crate::sync::websocket::WebSocketPeer;
 use crate::types::{Error, JSONSerializerSpec, SessionDetails, WSSerializerSpec};
 use http::Uri;
 use std::str::FromStr;
