@@ -124,9 +124,8 @@ impl WSSerializerSpec for MsgPackSerializerSpec {
 pub struct CallRequest {
     procedure: String,
     options: HashMap<String, Value>,
-
     args: Vec<Value>,
-    kw_args: HashMap<String, Value>,
+    kwargs: HashMap<String, Value>,
 }
 
 impl CallRequest {
@@ -134,7 +133,7 @@ impl CallRequest {
         Self {
             procedure: procedure.into(),
             args: Default::default(),
-            kw_args: Default::default(),
+            kwargs: Default::default(),
             options: Default::default(),
         }
     }
@@ -150,12 +149,12 @@ impl CallRequest {
     }
 
     pub fn with_kwarg<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
-        self.kw_args.insert(key.to_string(), value.into());
+        self.kwargs.insert(key.to_string(), value.into());
         self
     }
 
     pub fn with_kwargs(mut self, kwargs: HashMap<String, Value>) -> Self {
-        self.kw_args = kwargs;
+        self.kwargs = kwargs;
         self
     }
 
@@ -178,7 +177,7 @@ impl CallRequest {
     }
 
     pub fn kwargs(&self) -> &HashMap<String, Value> {
-        &self.kw_args
+        &self.kwargs
     }
 
     pub fn procedure(&self) -> String {
@@ -192,7 +191,7 @@ pub struct PublishRequest {
     options: HashMap<String, Value>,
 
     args: Vec<Value>,
-    kw_args: HashMap<String, Value>,
+    kwargs: HashMap<String, Value>,
 }
 
 impl PublishRequest {
@@ -200,7 +199,7 @@ impl PublishRequest {
         Self {
             topic: topic.into(),
             args: Default::default(),
-            kw_args: Default::default(),
+            kwargs: Default::default(),
             options: Default::default(),
         }
     }
@@ -216,12 +215,12 @@ impl PublishRequest {
     }
 
     pub fn with_kwarg<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
-        self.kw_args.insert(key.to_string(), value.into());
+        self.kwargs.insert(key.to_string(), value.into());
         self
     }
 
     pub fn with_kwargs(mut self, kwargs: HashMap<String, Value>) -> Self {
-        self.kw_args = kwargs;
+        self.kwargs = kwargs;
         self
     }
 
@@ -244,7 +243,7 @@ impl PublishRequest {
     }
 
     pub fn kwargs(&self) -> &HashMap<String, Value> {
-        &self.kw_args
+        &self.kwargs
     }
 
     pub fn topic(&self) -> String {
@@ -320,7 +319,6 @@ pub struct Event {
 pub struct SubscribeRequest {
     topic: String,
     options: HashMap<String, Value>,
-
     callback: EventFn,
 }
 
