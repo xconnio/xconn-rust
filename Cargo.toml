@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wampproto = { git = "ssh://git@github.com/xconnio/wampproto-rust.git", rev = "afcd2781d3ef1c3eaf4b31125a7356be2f1c560a" }
+wampproto = { git = "ssh://git@github.com/xconnio/wampproto-rust.git", rev = "11fb56f1506e165ada8c6d925dff43010f484e1e" }
 
 # sync websocket
 tungstenite = {  version = "0.27.0", features = ["native-tls"] }
