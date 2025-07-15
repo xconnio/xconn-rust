@@ -392,3 +392,7 @@ pub struct RegisterResponse {
     pub registration_id: i64,
     pub error: Option<WampError>,
 }
+
+pub type TransportType = usize;
+pub const TRANSPORT_WEB_SOCKET: TransportType = 1;
+pub const TRANSPORT_RAW_SOCKET: TransportType = 2;

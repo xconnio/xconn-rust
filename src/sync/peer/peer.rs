@@ -1,9 +1,5 @@
-use crate::types::Error;
+use crate::types::{Error, TransportType};
 use std::fmt::Debug;
-
-pub type TransportType = usize;
-pub const TRANSPORT_WEB_SOCKET: TransportType = 1;
-pub const TRANSPORT_RAW_SOCKET: TransportType = 2;
 
 pub trait Peer: Debug + Send + Sync {
     fn kind(&self) -> TransportType;
