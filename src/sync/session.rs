@@ -448,7 +448,14 @@ impl Session {
 
                 match self.peer.write(to_send) {
                     Ok(()) => match receiver.recv() {
-                        Ok(response) => Ok(response),
+                        Ok(response) => {
+                            self.state
+                                .registrations
+                                .lock()
+                                .unwrap()
+                                .insert(response.registration_id, request.callback());
+                            Ok(response)
+                        }
                         Err(e) => Err(Error::new(format!("register failed: {e}"))),
                     },
                     Err(e) => {
@@ -483,7 +490,14 @@ impl Session {
 
                 match self.peer.write(to_send) {
                     Ok(()) => match receiver.recv() {
-                        Ok(response) => Ok(response),
+                        Ok(response) => {
+                            self.state
+                                .subscriptions
+                                .lock()
+                                .unwrap()
+                                .insert(response.subscription_id, request.callback());
+                            Ok(response)
+                        }
                         Err(e) => Err(Error::new(format!("subscribe failed: {e}"))),
                     },
                     Err(e) => {
