@@ -1,8 +1,12 @@
 use crate::async_::joiner::WebSocketJoiner;
 use crate::async_::session::Session;
-use crate::types::{JSONSerializerSpec, WSSerializerSpec};
+use crate::types::{CBORSerializerSpec, Error, JSONSerializerSpec, WSSerializerSpec};
+
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
 use wampproto::authenticators::authenticator::ClientAuthenticator;
+use wampproto::authenticators::cryptosign::CryptoSignAuthenticator;
+use wampproto::authenticators::ticket::TicketAuthenticator;
+use wampproto::authenticators::wampcra::WAMPCRAAuthenticator;
 
 pub struct Client {
     serializer: Box<dyn WSSerializerSpec>,
@@ -40,5 +44,39 @@ impl Default for Client {
             serializer: Box::new(JSONSerializerSpec {}),
             authenticator: None,
         }
+    }
+}
+
+pub async fn connect_anonymous(uri: &str, realm: &str) -> Result<Session, Error> {
+    let client = Client::default();
+    Ok(client.connect(uri, realm).await)
+}
+
+pub async fn connect_ticket(uri: &str, realm: &str, authid: &str, ticket: &str) -> Result<Session, Error> {
+    let serializer = Box::new(CBORSerializerSpec {});
+    let authenticator = Box::new(TicketAuthenticator::new(authid, ticket, Default::default()));
+
+    let client = Client::new(serializer, authenticator);
+    Ok(client.connect(uri, realm).await)
+}
+
+pub async fn connect_wampcra(uri: &str, realm: &str, authid: &str, secret: &str) -> Result<Session, Error> {
+    let serializer = Box::new(CBORSerializerSpec {});
+    let authenticator = Box::new(WAMPCRAAuthenticator::new(authid, secret, Default::default()));
+
+    let client = Client::new(serializer, authenticator);
+    Ok(client.connect(uri, realm).await)
+}
+
+pub async fn connect_cryptosign(uri: &str, realm: &str, authid: &str, private_key_hex: &str) -> Result<Session, Error> {
+    let serializer = Box::new(CBORSerializerSpec {});
+
+    match CryptoSignAuthenticator::try_new(authid, private_key_hex, Default::default()) {
+        Ok(authenticator) => {
+            let client = Client::new(serializer, Box::new(authenticator));
+            Ok(client.connect(uri, realm).await)
+        }
+
+        Err(e) => Err(Error::new(e.to_string())),
     }
 }
