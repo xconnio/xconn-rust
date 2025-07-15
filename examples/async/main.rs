@@ -1,6 +1,7 @@
 use xconn::async_::client::connect_anonymous;
 use xconn::async_::session::Session;
-use xconn::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
+use xconn::async_::types::{RegisterRequest, SubscribeRequest};
+use xconn::types::{CallRequest, Event, Invocation, PublishRequest, Yield};
 
 #[tokio::main]
 async fn main() {
@@ -11,25 +12,7 @@ async fn main() {
 }
 
 async fn do_actions(session: Session) {
-    let call_request = CallRequest::new("io.xconn.call")
-        .with_arg(1)
-        .with_kwarg("name", "John");
-
-    match session.call(call_request).await {
-        Ok(response) => println!("{response:?}"),
-        Err(e) => println!("{e}"),
-    }
-
-    let publish_request = PublishRequest::new("hello")
-        .with_arg("hey there!")
-        .with_option("acknowledge", true);
-
-    match session.publish(publish_request).await {
-        Ok(response) => println!("{response:?}"),
-        Err(e) => println!("{e}"),
-    }
-
-    fn registration_handler(inv: Invocation) -> Yield {
+    async fn registration_handler(inv: Invocation) -> Yield {
         Yield {
             args: inv.args,
             kwargs: inv.kwargs,
@@ -42,12 +25,30 @@ async fn do_actions(session: Session) {
         Err(e) => println!("{e}"),
     }
 
-    fn event_handler(event: Event) {
-        println!("asdasdasdas {event:?}")
+    let call_request = CallRequest::new("io.xconn.echo")
+        .with_arg(1)
+        .with_kwarg("name", "John");
+
+    match session.call(call_request).await {
+        Ok(response) => println!("{response:?}"),
+        Err(e) => println!("{e}"),
     }
 
-    let subscribe_request = SubscribeRequest::new("io.xconn.echo", event_handler);
+    async fn event_handler(event: Event) {
+        println!("received event {event:?}")
+    }
+
+    let subscribe_request = SubscribeRequest::new("io.xconn.event", event_handler);
     match session.subscribe(subscribe_request).await {
+        Ok(response) => println!("{response:?}"),
+        Err(e) => println!("{e}"),
+    }
+
+    let publish_request = PublishRequest::new("io.xconn.event")
+        .with_arg("hey there!")
+        .with_option("acknowledge", true);
+
+    match session.publish(publish_request).await {
         Ok(response) => println!("{response:?}"),
         Err(e) => println!("{e}"),
     }
