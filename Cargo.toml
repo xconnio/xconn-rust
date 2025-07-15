@@ -10,3 +10,9 @@ wampproto = { git = "ssh://git@github.com/genki-robotics/wampproto-rust.git", re
 tungstenite = {  version = "0.27.0", features = ["native-tls"] }
 nix = { version = "0.30.1", features = ["poll"] }
 http = "1.3.1"
+
+# async websocket
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.27.0"
+futures-util = "0.3.31"
+async-trait = "0.1.88"
