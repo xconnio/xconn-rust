@@ -1,13 +1,13 @@
 use crate::async_::peer::Peer;
 use crate::types::{
-    CallRequest, CallResponse, Error, Event as XEvent, EventFn, Invocation as XInvocation, PublishRequest,
-    PublishResponse, RegisterFn, RegisterRequest, RegisterResponse, SessionDetails, SubscribeRequest,
-    SubscribeResponse, WampError,
+    CallRequest, CallResponse, Error, Event as XEvent, Invocation as XInvocation, PublishRequest, PublishResponse,
+    RegisterResponse, SessionDetails, SubscribeResponse, WampError,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{Mutex, mpsc};
 
+use crate::async_::types::{EventFn, RegisterFn, RegisterRequest, SubscribeRequest};
 use wampproto::idgen::SessionScopeIDGenerator;
 use wampproto::messages::call::{Call, MESSAGE_TYPE_CALL};
 use wampproto::messages::error::{Error as ErrorMsg, MESSAGE_TYPE_ERROR};
@@ -170,6 +170,7 @@ impl Session {
             MESSAGE_TYPE_INVOCATION => {
                 let invocation = msg.as_any().downcast_ref::<Invocation>().unwrap();
                 let registrations = state.registrations.lock().await;
+
                 let callback = registrations.get(&invocation.registration_id).cloned();
                 if callback.is_none() {
                     return;
@@ -183,8 +184,9 @@ impl Session {
 
                 let request_id = invocation.request_id;
                 let callback = callback.unwrap();
+
                 tokio::spawn(async move {
-                    let response = callback(inv);
+                    let response = callback.invoke(inv).await;
                     let yield_ = Yield {
                         request_id,
                         options: Default::default(),
@@ -241,9 +243,9 @@ impl Session {
                         details: Some(event.details.clone()),
                     };
 
-                    let callback = *callback;
+                    let callback = callback.clone();
                     tokio::spawn(async move {
-                        callback(xevent);
+                        callback.invoke(xevent).await;
                     });
                 }
             }
@@ -471,7 +473,14 @@ impl Session {
 
                 match self.peer.write(to_send).await {
                     Ok(()) => match receiver.recv().await {
-                        Some(response) => Ok(response),
+                        Some(response) => {
+                            self.state
+                                .registrations
+                                .lock()
+                                .await
+                                .insert(response.registration_id, request.callback());
+                            Ok(response)
+                        }
                         None => Err(Error::new("register failed")),
                     },
                     Err(e) => {
@@ -507,7 +516,14 @@ impl Session {
 
                 match self.peer.write(to_send).await {
                     Ok(()) => match receiver.recv().await {
-                        Some(response) => Ok(response),
+                        Some(response) => {
+                            self.state
+                                .subscriptions
+                                .lock()
+                                .await
+                                .insert(response.subscription_id, request.callback());
+                            Ok(response)
+                        }
                         None => Err(Error::new("subscribe failed")),
                     },
                     Err(e) => {
