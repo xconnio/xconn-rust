@@ -1,4 +1,4 @@
-use crate::sync::peer::peer::Peer;
+use crate::sync::peer::Peer;
 use crate::types::{
     CallRequest, CallResponse, Error, Event as XEvent, EventFn, Invocation as XInvocation, PublishRequest,
     PublishResponse, RegisterFn, RegisterRequest, RegisterResponse, SessionDetails, SubscribeRequest,
