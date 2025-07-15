@@ -334,7 +334,7 @@ impl Session {
         }
     }
 
-    pub fn call(&mut self, request: CallRequest) -> Result<CallResponse, Error> {
+    pub fn call(&self, request: CallRequest) -> Result<CallResponse, Error> {
         let request_id = self.idgen.next_id();
         let msg = Call {
             request_id,
@@ -500,7 +500,7 @@ impl Session {
         }
     }
 
-    pub fn leave(&mut self) -> Result<(), Error> {
+    pub fn leave(&self) -> Result<(), Error> {
         let msg = Goodbye {
             details: Default::default(),
             reason: "wamp.close.close_realm".to_string(),
