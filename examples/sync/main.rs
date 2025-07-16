@@ -1,7 +1,6 @@
 use xconn::sync::client::connect_anonymous;
 use xconn::sync::session::Session;
-use xconn::sync::types::{RegisterRequest, SubscribeRequest};
-use xconn::types::{CallRequest, Event, Invocation, PublishRequest, Yield};
+use xconn::sync::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
 
 fn main() {
     match connect_anonymous("ws://localhost:8080/ws", "realm1") {

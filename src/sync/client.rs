@@ -1,5 +1,5 @@
+use crate::common::types::{CBORSerializerSpec, Error, JSONSerializerSpec, SerializerSpec};
 use crate::sync::session::Session;
-use crate::types::{CBORSerializerSpec, Error, JSONSerializerSpec, SerializerSpec};
 
 use crate::sync::joiner::WebSocketJoiner;
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
