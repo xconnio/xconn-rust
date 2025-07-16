@@ -345,31 +345,28 @@ impl Session {
         };
 
         let (sender, receiver): (mpsc::Sender<CallResponse>, mpsc::Receiver<CallResponse>) = mpsc::channel();
+        let to_send = self
+            .proto
+            .send_message(Box::new(msg))
+            .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
-        match self.proto.send_message(Box::new(msg)) {
-            Ok(to_send) => {
-                {
-                    let mut lock = self.state.call_requests.lock().unwrap();
-                    lock.insert(request_id, sender)
-                };
+        {
+            let mut lock = self.state.call_requests.lock().unwrap();
+            lock.insert(request_id, sender)
+        };
 
-                match self.peer.write(to_send) {
-                    Ok(()) => match receiver.recv() {
-                        Ok(response) => Ok(response),
-                        Err(e) => Err(Error::new(format!("call failed: {e}"))),
-                    },
-                    Err(e) => {
-                        {
-                            let mut lock = self.state.call_requests.lock().unwrap();
-                            lock.remove(&request_id)
-                        };
-                        Err(Error::new(format!("failed to send message: {e}")))
-                    }
-                }
-            }
+        self.peer
+            .write(to_send)
+            .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+        let response = receiver.recv().map_err(|e| {
+            {
+                let mut lock = self.state.call_requests.lock().unwrap();
+                lock.remove(&request_id)
+            };
+            Error::new(format!("call failed: {e}"))
+        })?;
 
-            Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
-        }
+        Ok(response)
     }
 
     pub fn publish(&self, request: PublishRequest) -> Result<Option<PublishResponse>, Error> {
@@ -390,42 +387,30 @@ impl Session {
             }
         };
 
+        let to_send = self
+            .proto
+            .send_message(Box::new(msg))
+            .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
+
         if acknowledge {
             let (sender, receiver): (mpsc::Sender<PublishResponse>, mpsc::Receiver<PublishResponse>) = mpsc::channel();
+            {
+                let mut lock = self.state.publish_requests.lock().unwrap();
+                lock.insert(request_id, sender)
+            };
 
-            match self.proto.send_message(Box::new(msg)) {
-                Ok(to_send) => {
-                    {
-                        let mut lock = self.state.publish_requests.lock().unwrap();
-                        lock.insert(request_id, sender)
-                    };
-
-                    match self.peer.write(to_send) {
-                        Ok(()) => match receiver.recv() {
-                            Ok(response) => Ok(Some(response)),
-                            Err(e) => Err(Error::new(format!("publish failed: {e}"))),
-                        },
-                        Err(e) => {
-                            {
-                                let mut lock = self.state.publish_requests.lock().unwrap();
-                                lock.remove(&request_id)
-                            };
-                            Err(Error::new(format!("failed to send message: {e}")))
-                        }
-                    }
-                }
-
-                Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
-            }
+            self.peer
+                .write(to_send)
+                .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+            let response = receiver
+                .recv()
+                .map_err(|e| Error::new(format!("publish failed: {e}")))?;
+            Ok(Some(response))
         } else {
-            match self.proto.send_message(Box::new(msg)) {
-                Ok(to_send) => match self.peer.write(to_send) {
-                    Ok(()) => Ok(None),
-                    Err(e) => Err(Error::new(format!("failed to send message: {e}"))),
-                },
-
-                Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
-            }
+            self.peer
+                .write(to_send)
+                .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+            Ok(None)
         }
     }
 
@@ -438,38 +423,28 @@ impl Session {
         };
 
         let (sender, receiver): (mpsc::Sender<RegisterResponse>, mpsc::Receiver<RegisterResponse>) = mpsc::channel();
+        let to_send = self
+            .proto
+            .send_message(Box::new(msg))
+            .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
-        match self.proto.send_message(Box::new(msg)) {
-            Ok(to_send) => {
-                {
-                    let mut lock = self.state.register_requests.lock().unwrap();
-                    lock.insert(request_id, sender)
-                };
+        {
+            let mut lock = self.state.register_requests.lock().unwrap();
+            lock.insert(request_id, sender)
+        };
 
-                match self.peer.write(to_send) {
-                    Ok(()) => match receiver.recv() {
-                        Ok(response) => {
-                            self.state
-                                .registrations
-                                .lock()
-                                .unwrap()
-                                .insert(response.registration_id, request.callback());
-                            Ok(response)
-                        }
-                        Err(e) => Err(Error::new(format!("register failed: {e}"))),
-                    },
-                    Err(e) => {
-                        {
-                            let mut lock = self.state.register_requests.lock().unwrap();
-                            lock.remove(&request_id)
-                        };
-                        Err(Error::new(format!("failed to send message: {e}")))
-                    }
-                }
-            }
-
-            Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
-        }
+        self.peer
+            .write(to_send)
+            .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+        let response = receiver
+            .recv()
+            .map_err(|e| Error::new(format!("register failed: {e}")))?;
+        self.state
+            .registrations
+            .lock()
+            .unwrap()
+            .insert(response.registration_id, request.callback());
+        Ok(response)
     }
 
     pub fn subscribe(&self, request: SubscribeRequest) -> Result<SubscribeResponse, Error> {
@@ -481,37 +456,28 @@ impl Session {
         };
 
         let (sender, receiver): (mpsc::Sender<SubscribeResponse>, mpsc::Receiver<SubscribeResponse>) = mpsc::channel();
-        match self.proto.send_message(Box::new(msg)) {
-            Ok(to_send) => {
-                {
-                    let mut lock = self.state.subscribe_requests.lock().unwrap();
-                    lock.insert(request_id, sender)
-                };
+        let to_send = self
+            .proto
+            .send_message(Box::new(msg))
+            .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
-                match self.peer.write(to_send) {
-                    Ok(()) => match receiver.recv() {
-                        Ok(response) => {
-                            self.state
-                                .subscriptions
-                                .lock()
-                                .unwrap()
-                                .insert(response.subscription_id, request.callback());
-                            Ok(response)
-                        }
-                        Err(e) => Err(Error::new(format!("subscribe failed: {e}"))),
-                    },
-                    Err(e) => {
-                        {
-                            let mut lock = self.state.subscribe_requests.lock().unwrap();
-                            lock.remove(&request_id)
-                        };
-                        Err(Error::new(format!("failed to send message: {e}")))
-                    }
-                }
-            }
+        {
+            let mut lock = self.state.subscribe_requests.lock().unwrap();
+            lock.insert(request_id, sender)
+        };
 
-            Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
-        }
+        self.peer
+            .write(to_send)
+            .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+        let response = receiver
+            .recv()
+            .map_err(|e| Error::new(format!("subscribe failed: {e}")))?;
+        self.state
+            .subscriptions
+            .lock()
+            .unwrap()
+            .insert(response.subscription_id, request.callback());
+        Ok(response)
     }
 
     pub fn leave(&self) -> Result<(), Error> {
@@ -520,22 +486,23 @@ impl Session {
             reason: "wamp.close.close_realm".to_string(),
         };
 
-        match self.proto.send_message(Box::new(msg)) {
-            Ok(to_send) => {
-                {
-                    let mut sent = self.state.goodbye_sent.lock().unwrap();
-                    *sent = true;
-                }
-                match self.peer.write(to_send) {
-                    Ok(()) => match self.goodbye_receiver_channel.lock().unwrap().recv() {
-                        Ok(_reason) => Ok(()),
-                        Err(e) => Err(Error::new(format!("leave failed: {e}"))),
-                    },
-                    Err(e) => Err(Error::new(format!("failed to send message: {e}"))),
-                }
-            }
-            Err(e) => Err(Error::new(format!("proto failed to parse message: {e}"))),
+        let to_send = self
+            .proto
+            .send_message(Box::new(msg))
+            .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
+        {
+            let mut sent = self.state.goodbye_sent.lock().unwrap();
+            *sent = true;
         }
+
+        self.peer
+            .write(to_send)
+            .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
+        self.goodbye_receiver_channel
+            .lock()
+            .unwrap()
+            .recv()
+            .map_err(|e| Error::new(format!("leave failed: {e}")))
     }
 
     pub fn wait_disconnect(&self) {
