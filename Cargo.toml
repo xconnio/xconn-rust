@@ -2,18 +2,35 @@
 name = "xconn"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
+
+[features]
+default = ["async"]   # Default to sync unless otherwise requested
+sync = ["nix"]
+async = ["tokio", "tokio-tungstenite", "futures-util", "async-trait", "url"]
 
 [dependencies]
+# base dependencies
 wampproto = { git = "ssh://git@github.com/xconnio/wampproto-rust.git", rev = "cb5c65a8b8098be7103a9d25d5491074d27ad346" }
+http = { version = "1.3.1" }
+tungstenite = {  version = "0.27.0", features = ["native-tls"] }
 
 # sync websocket
-tungstenite = {  version = "0.27.0", features = ["native-tls"] }
-nix = { version = "0.30.1", features = ["poll"] }
-http = "1.3.1"
+nix = { version = "0.30.1", features = ["poll"], optional = true }
 
 # async websocket
-tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = "0.27.0"
-futures-util = "0.3.31"
-async-trait = "0.1.88"
-url = "2.5.4"
+tokio = { version = "1", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.27.0", optional = true }
+futures-util = { version = "0.3.31", optional = true }
+async-trait = { version = "0.1.88", optional = true }
+url = { version = "2.5.4", optional = true }
+
+[[example]]
+name = "sync_example"
+path = "examples/sync/main.rs"
+required-features = ["sync"]
+
+[[example]]
+name = "async_example"
+path = "examples/async/main.rs"
+required-features = ["async"]
