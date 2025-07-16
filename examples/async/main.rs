@@ -52,4 +52,6 @@ async fn do_actions(session: Session) {
         Ok(response) => println!("{response:?}"),
         Err(e) => println!("{e}"),
     }
+
+    session.wait_disconnect().await
 }
