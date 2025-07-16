@@ -63,13 +63,9 @@ pub fn connect_wampcra(uri: &str, realm: &str, authid: &str, secret: &str) -> Re
 
 pub fn connect_cryptosign(uri: &str, realm: &str, authid: &str, private_key_hex: &str) -> Result<Session, Error> {
     let serializer = Box::new(CBORSerializerSpec {});
+    let authenticator = CryptoSignAuthenticator::try_new(authid, private_key_hex, Default::default())
+        .map_err(|e| Error::new(e.to_string()))?;
 
-    match CryptoSignAuthenticator::try_new(authid, private_key_hex, Default::default()) {
-        Ok(authenticator) => {
-            let client = Client::new(serializer, Box::new(authenticator));
-            client.connect(uri, realm)
-        }
-
-        Err(e) => Err(Error::new(e.to_string())),
-    }
+    let client = Client::new(serializer, Box::new(authenticator));
+    client.connect(uri, realm)
 }

@@ -32,18 +32,18 @@ impl Peer for WebSocketPeer {
     async fn write(&self, data: Vec<u8>) -> Result<(), Error> {
         let mut writer = self.writer.clone().lock_owned().await;
         if self.binary {
-            match writer.send(Message::Binary(Bytes::copy_from_slice(&data))).await {
-                Ok(()) => Ok(()),
-                Err(e) => Err(Error::new(format!("write error: {e}"))),
-            }
+            _ = writer
+                .send(Message::Binary(Bytes::copy_from_slice(&data)))
+                .await
+                .map_err(|e| Error::new(format!("write error: {e}")))?;
+            Ok(())
         } else {
-            match String::from_utf8(data) {
-                Ok(data) => match writer.send(Message::Text(Utf8Bytes::from(data))).await {
-                    Ok(()) => Ok(()),
-                    Err(e) => Err(Error::new(format!("write error: {e}"))),
-                },
-                Err(e) => Err(Error::new(format!("Not valid UTF-8: {e}"))),
-            }
+            let as_string = String::from_utf8(data).map_err(|e| Error::new(format!("Not valid UTF-8: {e}")))?;
+            _ = writer
+                .send(Message::Text(Utf8Bytes::from(as_string)))
+                .await
+                .map_err(|e| Error::new(format!("write error: {e}")))?;
+            Ok(())
         }
     }
 }
