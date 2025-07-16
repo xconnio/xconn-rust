@@ -1,7 +1,8 @@
 use crate::async_::peer::Peer;
+use crate::async_::rawsocket::connect_rawsocket;
 use crate::async_::websocket::WebSocketPeer;
-use crate::types::{Error, JSONSerializerSpec, SessionDetails, WSSerializerSpec};
-use futures_util::StreamExt;
+use crate::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
+use futures_util::{StreamExt, TryFutureExt};
 use http::Uri;
 use std::str::FromStr;
 use tokio_tungstenite::connect_async_with_config;
@@ -13,7 +14,7 @@ use wampproto::joiner;
 use wampproto::serializers::serializer::Serializer;
 
 pub struct WebSocketJoiner {
-    serializer: Box<dyn WSSerializerSpec>,
+    serializer: Box<dyn SerializerSpec>,
     authenticator: Box<dyn ClientAuthenticator>,
 }
 
@@ -27,7 +28,7 @@ impl Default for WebSocketJoiner {
 }
 
 impl WebSocketJoiner {
-    pub fn new(serializer: Box<dyn WSSerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
         Self {
             serializer,
             authenticator,
@@ -90,5 +91,36 @@ pub async fn join(
         }
     } else {
         Err(Error::new("failed to send hello"))
+    }
+}
+
+pub struct RawSocketJoiner {
+    serializer: Box<dyn SerializerSpec>,
+    authenticator: Box<dyn ClientAuthenticator>,
+}
+
+impl Default for RawSocketJoiner {
+    fn default() -> Self {
+        Self::new(
+            Box::new(JSONSerializerSpec {}),
+            Box::new(AnonymousAuthenticator::default()),
+        )
+    }
+}
+
+impl RawSocketJoiner {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+        Self {
+            serializer,
+            authenticator,
+        }
+    }
+
+    pub async fn join(&self, uri: &str, realm: &str) -> Result<(Box<dyn Peer>, SessionDetails), Error> {
+        let peer = connect_rawsocket(uri, self.serializer.clone())
+            .map_err(|e| Error::new(format!("failed to connect: {e}")))
+            .await?;
+
+        join(peer, realm, self.serializer.serializer(), self.authenticator.clone()).await
     }
 }

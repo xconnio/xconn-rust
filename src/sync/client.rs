@@ -1,5 +1,5 @@
 use crate::sync::session::Session;
-use crate::types::{CBORSerializerSpec, Error, JSONSerializerSpec, WSSerializerSpec};
+use crate::types::{CBORSerializerSpec, Error, JSONSerializerSpec, SerializerSpec};
 
 use crate::sync::joiner::WebSocketJoiner;
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
@@ -9,12 +9,12 @@ use wampproto::authenticators::ticket::TicketAuthenticator;
 use wampproto::authenticators::wampcra::WAMPCRAAuthenticator;
 
 pub struct Client {
-    serializer: Box<dyn WSSerializerSpec>,
+    serializer: Box<dyn SerializerSpec>,
     authenticator: Box<dyn ClientAuthenticator>,
 }
 
 impl Client {
-    pub fn new(serializer: Box<dyn WSSerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
         Self {
             serializer,
             authenticator,

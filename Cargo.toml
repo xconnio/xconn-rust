@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wampproto = { git = "ssh://git@github.com/genki-robotics/wampproto-rust.git", rev = "11fb56f1506e165ada8c6d925dff43010f484e1e" }
+wampproto = { git = "ssh://git@github.com/genki-robotics/wampproto-rust.git", rev = "cb5c65a8b8098be7103a9d25d5491074d27ad346" }
 
 # sync websocket
 tungstenite = {  version = "0.27.0", features = ["native-tls"] }
@@ -16,3 +16,4 @@ tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.27.0"
 futures-util = "0.3.31"
 async-trait = "0.1.88"
+url = "2.5.4"
