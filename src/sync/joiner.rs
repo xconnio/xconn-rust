@@ -1,6 +1,6 @@
 use crate::sync::peer::Peer;
 use crate::sync::websocket::WebSocketPeer;
-use crate::types::{Error, JSONSerializerSpec, SessionDetails, WSSerializerSpec};
+use crate::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use http::Uri;
 use std::str::FromStr;
 use tungstenite::ClientRequestBuilder;
@@ -12,7 +12,7 @@ use wampproto::joiner;
 use wampproto::serializers::serializer::Serializer;
 
 pub struct WebSocketJoiner {
-    serializer: Box<dyn WSSerializerSpec>,
+    serializer: Box<dyn SerializerSpec>,
     authenticator: Box<dyn ClientAuthenticator>,
 }
 
@@ -26,7 +26,7 @@ impl Default for WebSocketJoiner {
 }
 
 impl WebSocketJoiner {
-    pub fn new(serializer: Box<dyn WSSerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
         Self {
             serializer,
             authenticator,
