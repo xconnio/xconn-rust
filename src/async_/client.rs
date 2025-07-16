@@ -1,6 +1,6 @@
-use crate::async_::joiner::WebSocketJoiner;
+use crate::async_::joiner::{RawSocketJoiner, WebSocketJoiner};
 use crate::async_::session::Session;
-use crate::types::{CBORSerializerSpec, Error, JSONSerializerSpec, WSSerializerSpec};
+use crate::types::{CBORSerializerSpec, Error, SerializerSpec};
 
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
 use wampproto::authenticators::authenticator::ClientAuthenticator;
@@ -9,12 +9,12 @@ use wampproto::authenticators::ticket::TicketAuthenticator;
 use wampproto::authenticators::wampcra::WAMPCRAAuthenticator;
 
 pub struct Client {
-    serializer: Box<dyn WSSerializerSpec>,
+    serializer: Box<dyn SerializerSpec>,
     authenticator: Box<dyn ClientAuthenticator>,
 }
 
 impl Client {
-    pub fn new(serializer: Box<dyn WSSerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
         Self {
             serializer,
             authenticator,
@@ -22,11 +22,22 @@ impl Client {
     }
 
     pub async fn connect(self, uri: &str, realm: &str) -> Result<Session, Error> {
-        let serializer = self.serializer.serializer();
-        let joiner = WebSocketJoiner::new(self.serializer, self.authenticator);
-        match joiner.join(uri, realm).await {
-            Ok((peer, details)) => Ok(Session::new(details, peer, serializer)),
-            Err(e) => Err(Error::new(e.to_string())),
+        if uri.starts_with("ws://") || uri.starts_with("wss://") {
+            let serializer = self.serializer.serializer();
+            let joiner = WebSocketJoiner::new(self.serializer, self.authenticator);
+            let (peer, details) = joiner.join(uri, realm).await.map_err(|e| Error::new(e.to_string()))?;
+            Ok(Session::new(details, peer, serializer))
+        } else if uri.starts_with("rs://")
+            || uri.starts_with("rss://")
+            || uri.starts_with("tcp://")
+            || uri.starts_with("tcps://")
+        {
+            let serializer = self.serializer.serializer();
+            let joiner = RawSocketJoiner::new(self.serializer, self.authenticator);
+            let (peer, details) = joiner.join(uri, realm).await.map_err(|e| Error::new(e.to_string()))?;
+            Ok(Session::new(details, peer, serializer))
+        } else {
+            Err(Error::new("Invalid URI scheme".to_string()))
         }
     }
 }
@@ -34,7 +45,7 @@ impl Client {
 impl Default for Client {
     fn default() -> Self {
         Self {
-            serializer: Box::new(JSONSerializerSpec {}),
+            serializer: Box::new(CBORSerializerSpec {}),
             authenticator: Box::new(AnonymousAuthenticator::new("", Default::default())),
         }
     }
