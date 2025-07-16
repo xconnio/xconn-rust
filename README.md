@@ -13,12 +13,10 @@ async fn main() {
         .unwrap_or_else(|e| panic!("{e}"));
 
     // build a call request
-    let call_request = CallRequest::new("io.xconn.echo")
-        .with_arg(1)
-        .with_kwarg("name", "John");
+    let request = CallRequest::new("io.xconn.echo").arg(1).kwarg("name", "John");
 
     // pass the request and get the response.
-    let response = session.call(call_request).await.unwrap();
+    let response = session.call(request).await.unwrap();
     println!("args={:?}, kwargs={:?}", response.args, response.kwargs);
 }
 ```

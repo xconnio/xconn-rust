@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
+use wampproto::messages::call::Call;
+use wampproto::messages::publish::Publish;
 use wampproto::messages::types::Value;
 use wampproto::serializers::cbor::CBORSerializer;
 use wampproto::serializers::json::JSONSerializer;
@@ -171,55 +173,63 @@ impl _OutgoingRequest {
         }
     }
 
-    pub fn with_arg<T: Into<Value>>(mut self, arg: T) -> Self {
+    pub fn arg<T: Into<Value>>(mut self, arg: T) -> Self {
         self.args.push(arg.into());
         self
     }
 
-    pub fn with_args(mut self, args: Vec<Value>) -> Self {
+    pub fn args(mut self, args: Vec<Value>) -> Self {
         self.args = args;
         self
     }
 
-    pub fn with_kwarg<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
+    pub fn kwarg<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
         self.kwargs.insert(key.to_string(), value.into());
         self
     }
 
-    pub fn with_kwargs(mut self, kwargs: HashMap<String, Value>) -> Self {
+    pub fn kwargs(mut self, kwargs: HashMap<String, Value>) -> Self {
         self.kwargs = kwargs;
         self
     }
 
-    pub fn with_option<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
+    pub fn option<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
         self.options.insert(key.to_string(), value.into());
         self
     }
 
-    pub fn with_options(mut self, options: HashMap<String, Value>) -> Self {
+    pub fn options(mut self, options: HashMap<String, Value>) -> Self {
         self.options = options;
         self
-    }
-
-    pub fn options(&self) -> &HashMap<String, Value> {
-        &self.options
-    }
-
-    pub fn args(&self) -> &Vec<Value> {
-        &self.args
-    }
-
-    pub fn kwargs(&self) -> &HashMap<String, Value> {
-        &self.kwargs
-    }
-
-    pub fn uri(&self) -> String {
-        self.uri.clone()
     }
 }
 
 pub type CallRequest = _OutgoingRequest;
 pub type PublishRequest = _OutgoingRequest;
+
+impl CallRequest {
+    pub(crate) fn to_call(&self, request_id: i64) -> Call {
+        Call {
+            request_id,
+            options: self.options.clone(),
+            procedure: self.uri.clone(),
+            args: Some(self.args.clone()),
+            kwargs: Some(self.kwargs.clone()),
+        }
+    }
+}
+
+impl PublishRequest {
+    pub(crate) fn to_publish(&self, request_id: i64) -> Publish {
+        Publish {
+            request_id,
+            options: self.options.clone(),
+            topic: self.uri.clone(),
+            args: Some(self.args.clone()),
+            kwargs: Some(self.kwargs.clone()),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct _IncomingRequest {

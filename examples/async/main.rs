@@ -20,9 +20,7 @@ async fn main() {
         Err(e) => println!("{e}"),
     }
 
-    let call_request = CallRequest::new("io.xconn.echo")
-        .with_arg(1)
-        .with_kwarg("name", "John");
+    let call_request = CallRequest::new("io.xconn.echo").arg(1).kwarg("name", "John");
 
     let response = session.call(call_request).await.unwrap();
     println!("args={:?}, kwargs={:?}", response.args, response.kwargs);
@@ -38,8 +36,8 @@ async fn main() {
     }
 
     let publish_request = PublishRequest::new("io.xconn.event")
-        .with_arg("hey there!")
-        .with_option("acknowledge", true);
+        .arg("hey there!")
+        .option("acknowledge", true);
 
     match session.publish(publish_request).await {
         Ok(response) => println!("{response:?}"),
