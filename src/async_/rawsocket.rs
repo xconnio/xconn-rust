@@ -1,5 +1,5 @@
 use crate::async_::peer::Peer;
-use crate::types::{Error, SerializerSpec, TRANSPORT_RAW_SOCKET, TransportType};
+use crate::common::types::{Error, SerializerSpec, TRANSPORT_RAW_SOCKET, TransportType};
 use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};

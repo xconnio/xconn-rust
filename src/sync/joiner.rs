@@ -1,6 +1,6 @@
+use crate::common::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use crate::sync::peer::Peer;
 use crate::sync::websocket::WebSocketPeer;
-use crate::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use http::Uri;
 use std::str::FromStr;
 use tungstenite::ClientRequestBuilder;

@@ -4,3 +4,5 @@ pub mod peer;
 pub mod session;
 pub mod types;
 pub mod websocket;
+
+pub use types::*;

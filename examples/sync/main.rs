@@ -1,16 +1,9 @@
 use xconn::sync::client::connect_anonymous;
-use xconn::sync::session::Session;
-use xconn::sync::types::{RegisterRequest, SubscribeRequest};
-use xconn::types::{CallRequest, Event, Invocation, PublishRequest, Yield};
+use xconn::sync::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
 
 fn main() {
-    match connect_anonymous("ws://localhost:8080/ws", "realm1") {
-        Ok(session) => do_actions(session),
-        Err(e) => println!("{e}"),
-    }
-}
+    let session = connect_anonymous("ws://localhost:8080/ws", "realm1").unwrap_or_else(|e| panic!("{e}"));
 
-fn do_actions(session: Session) {
     fn registration_handler(inv: Invocation) -> Yield {
         Yield {
             args: inv.args,
@@ -24,9 +17,7 @@ fn do_actions(session: Session) {
         Err(e) => println!("{e}"),
     }
 
-    let call_request = CallRequest::new("com.genki.echo")
-        .with_arg(1)
-        .with_kwarg("name", "Robot");
+    let call_request = CallRequest::new("com.genki.echo").arg(1).kwarg("name", "Robot");
 
     match session.call(call_request) {
         Ok(response) => println!("{response:?}"),
@@ -44,13 +35,13 @@ fn do_actions(session: Session) {
     }
 
     let publish_request = PublishRequest::new("com.genki.event")
-        .with_arg("hey there!")
-        .with_option("acknowledge", true);
+        .arg("hey there!")
+        .option("acknowledge", true);
 
     match session.publish(publish_request) {
         Ok(response) => println!("{response:?}"),
         Err(e) => println!("{e}"),
     }
 
-    session.wait_disconnect()
+    session.wait_disconnect();
 }

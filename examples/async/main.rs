@@ -1,17 +1,12 @@
 use xconn::async_::client::connect_anonymous;
-use xconn::async_::session::Session;
-use xconn::async_::types::{RegisterRequest, SubscribeRequest};
-use xconn::types::{CallRequest, Event, Invocation, PublishRequest, Yield};
+use xconn::async_::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
 
 #[tokio::main]
 async fn main() {
-    match connect_anonymous("ws://localhost:8080/ws", "realm1").await {
-        Ok(session) => _ = do_actions(session).await,
-        Err(e) => println!("{e}"),
-    }
-}
+    let session = connect_anonymous("ws://localhost:8080/ws", "realm1")
+        .await
+        .unwrap_or_else(|e| panic!("{e}"));
 
-async fn do_actions(session: Session) {
     async fn registration_handler(inv: Invocation) -> Yield {
         Yield {
             args: inv.args,
@@ -25,14 +20,10 @@ async fn do_actions(session: Session) {
         Err(e) => println!("{e}"),
     }
 
-    let call_request = CallRequest::new("com.genki.echo")
-        .with_arg(1)
-        .with_kwarg("name", "Robot");
+    let call_request = CallRequest::new("com.genki.echo").arg(1).kwarg("name", "Robot");
 
-    match session.call(call_request).await {
-        Ok(response) => println!("{response:?}"),
-        Err(e) => println!("{e}"),
-    }
+    let response = session.call(call_request).await.unwrap();
+    println!("args={:?}, kwargs={:?}", response.args, response.kwargs);
 
     async fn event_handler(event: Event) {
         println!("received event {event:?}")
@@ -45,13 +36,13 @@ async fn do_actions(session: Session) {
     }
 
     let publish_request = PublishRequest::new("com.genki.event")
-        .with_arg("hey there!")
-        .with_option("acknowledge", true);
+        .arg("hey there!")
+        .option("acknowledge", true);
 
     match session.publish(publish_request).await {
         Ok(response) => println!("{response:?}"),
         Err(e) => println!("{e}"),
     }
 
-    session.wait_disconnect().await
+    session.wait_disconnect().await;
 }
