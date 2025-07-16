@@ -1,15 +1,9 @@
 use xconn::sync::client::connect_anonymous;
-use xconn::sync::session::Session;
 use xconn::sync::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
 
 fn main() {
-    match connect_anonymous("ws://localhost:8080/ws", "realm1") {
-        Ok(session) => do_actions(session),
-        Err(e) => println!("{e}"),
-    }
-}
+    let session = connect_anonymous("ws://localhost:8080/ws", "realm1").unwrap_or_else(|e| panic!("{e}"));
 
-fn do_actions(session: Session) {
     fn registration_handler(inv: Invocation) -> Yield {
         Yield {
             args: inv.args,
@@ -51,5 +45,5 @@ fn do_actions(session: Session) {
         Err(e) => println!("{e}"),
     }
 
-    session.wait_disconnect()
+    session.wait_disconnect();
 }
