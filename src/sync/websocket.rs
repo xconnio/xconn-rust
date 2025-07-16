@@ -32,26 +32,22 @@ impl Peer for WebSocketPeer {
 
     fn read(&self) -> Result<Vec<u8>, Error> {
         let reader = self.reader.lock().unwrap();
-        match reader.recv() {
-            Ok(msg) => Ok(msg.into_data().to_vec()),
-            Err(e) => Err(Error::new(format!("read error: {e}"))),
-        }
+        let msg = reader.recv().map_err(|e| Error::new(format!("read error: {e}")))?;
+        Ok(msg.into_data().to_vec())
     }
 
     fn write(&self, data: Vec<u8>) -> Result<(), Error> {
         if self.binary {
-            match self.writer.send(Message::Binary(Bytes::copy_from_slice(&data))) {
-                Ok(()) => Ok(()),
-                Err(e) => Err(Error::new(format!("write error: {e}"))),
-            }
+            self.writer
+                .send(Message::Binary(Bytes::copy_from_slice(&data)))
+                .map_err(|e| Error::new(format!("write error: {e}")))?;
+            Ok(())
         } else {
-            match String::from_utf8(data) {
-                Ok(data) => match self.writer.send(Message::Text(Utf8Bytes::from(data))) {
-                    Ok(()) => Ok(()),
-                    Err(e) => Err(Error::new(format!("write error: {e}"))),
-                },
-                Err(e) => Err(Error::new(format!("Not valid UTF-8: {e}"))),
-            }
+            let as_string = String::from_utf8(data).map_err(|e| Error::new(format!("Not valid UTF-8: {e}")))?;
+            self.writer
+                .send(Message::Text(Utf8Bytes::from(as_string)))
+                .map_err(|e| Error::new(format!("write error: {e}")))?;
+            Ok(())
         }
     }
 }

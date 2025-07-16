@@ -38,15 +38,11 @@ impl WebSocketJoiner {
         let request = ClientRequestBuilder::new(uri).with_sub_protocol(self.serializer.subprotocol());
         let config = Some(WebSocketConfig::default());
 
-        match connect_with_config(request, config, 1) {
-            Ok((conn, _)) => {
-                let peer = WebSocketPeer::new(conn, self.serializer.is_binary());
-                let auth = self.authenticator.clone();
-                join(peer, realm, self.serializer.serializer(), auth)
-            }
-
-            Err(e) => Err(Error::new(format!("failed to connect: {e}"))),
-        }
+        let (conn, _) =
+            connect_with_config(request, config, 1).map_err(|e| Error::new(format!("failed to connect: {e}")))?;
+        let peer = WebSocketPeer::new(conn, self.serializer.is_binary());
+        let auth = self.authenticator.clone();
+        join(peer, realm, self.serializer.serializer(), auth)
     }
 }
 
@@ -57,36 +53,30 @@ pub fn join(
     authenticator: Box<dyn ClientAuthenticator>,
 ) -> Result<(Box<dyn Peer>, SessionDetails), Error> {
     let mut proto = joiner::Joiner::new(realm, serializer.clone(), authenticator);
-    if let Ok(hello) = proto.send_hello() {
-        peer.write(hello)?;
 
-        loop {
-            if let Ok(reply) = peer.read() {
-                match proto.receive(reply) {
-                    Ok(Some(to_send)) => {
-                        peer.write(to_send)?;
-                    }
+    let hello_raw = proto
+        .send_hello()
+        .map_err(|e| Error::new(format!("failed to send hello: {e}")))?;
+    peer.write(hello_raw)?;
 
-                    Ok(None) => {
-                        if let Ok(Some(details)) = proto.session_details() {
-                            let details = SessionDetails::new(
-                                details.id,
-                                details.realm.to_string(),
-                                details.authid.to_string(),
-                                details.auth_role.to_string(),
-                            );
+    loop {
+        if let Ok(reply) = peer.read() {
+            match proto.receive(reply) {
+                Ok(Some(to_send)) => peer.write(to_send)?,
+                Ok(None) => {
+                    if let Ok(Some(details)) = proto.session_details() {
+                        let details = SessionDetails::new(
+                            details.id,
+                            details.realm.to_string(),
+                            details.authid.to_string(),
+                            details.auth_role.to_string(),
+                        );
 
-                            return Ok((peer, details));
-                        }
-                    }
-
-                    Err(e) => {
-                        return Err(Error::new(format!("failed to join: {e}")));
+                        return Ok((peer, details));
                     }
                 }
+                Err(e) => return Err(Error::new(format!("failed to join: {e}"))),
             }
         }
-    } else {
-        Err(Error::new("failed to send hello"))
     }
 }

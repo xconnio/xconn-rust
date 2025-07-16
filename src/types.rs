@@ -154,17 +154,17 @@ impl _SerializerSpec for MsgPackSerializerSpec {
 }
 
 #[derive(Debug)]
-pub struct CallRequest {
-    procedure: String,
+pub struct _OutgoingRequest {
+    uri: String,
     options: HashMap<String, Value>,
     args: Vec<Value>,
     kwargs: HashMap<String, Value>,
 }
 
-impl CallRequest {
-    pub fn new<S: Into<String>>(procedure: S) -> Self {
+impl _OutgoingRequest {
+    pub fn new<S: Into<String>>(uri: S) -> Self {
         Self {
-            procedure: procedure.into(),
+            uri: uri.into(),
             args: Default::default(),
             kwargs: Default::default(),
             options: Default::default(),
@@ -213,95 +213,28 @@ impl CallRequest {
         &self.kwargs
     }
 
-    pub fn procedure(&self) -> String {
-        self.procedure.clone()
+    pub fn uri(&self) -> String {
+        self.uri.clone()
     }
 }
+
+pub type CallRequest = _OutgoingRequest;
+pub type PublishRequest = _OutgoingRequest;
 
 #[derive(Debug)]
-pub struct PublishRequest {
-    topic: String,
-    options: HashMap<String, Value>,
-
-    args: Vec<Value>,
-    kwargs: HashMap<String, Value>,
-}
-
-impl PublishRequest {
-    pub fn new<S: Into<String>>(topic: S) -> Self {
-        Self {
-            topic: topic.into(),
-            args: Default::default(),
-            kwargs: Default::default(),
-            options: Default::default(),
-        }
-    }
-
-    pub fn with_arg<T: Into<Value>>(mut self, arg: T) -> Self {
-        self.args.push(arg.into());
-        self
-    }
-
-    pub fn with_args(mut self, args: Vec<Value>) -> Self {
-        self.args = args;
-        self
-    }
-
-    pub fn with_kwarg<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
-        self.kwargs.insert(key.to_string(), value.into());
-        self
-    }
-
-    pub fn with_kwargs(mut self, kwargs: HashMap<String, Value>) -> Self {
-        self.kwargs = kwargs;
-        self
-    }
-
-    pub fn with_option<T: Into<Value>>(mut self, key: &str, value: T) -> Self {
-        self.options.insert(key.to_string(), value.into());
-        self
-    }
-
-    pub fn with_options(mut self, options: HashMap<String, Value>) -> Self {
-        self.options = options;
-        self
-    }
-
-    pub fn options(&self) -> &HashMap<String, Value> {
-        &self.options
-    }
-
-    pub fn args(&self) -> &Vec<Value> {
-        &self.args
-    }
-
-    pub fn kwargs(&self) -> &HashMap<String, Value> {
-        &self.kwargs
-    }
-
-    pub fn topic(&self) -> String {
-        self.topic.clone()
-    }
-}
-
-#[derive(Debug)]
-pub struct Invocation {
+pub struct _IncomingRequest {
     pub args: Option<Vec<Value>>,
     pub kwargs: Option<HashMap<String, Value>>,
     pub details: Option<HashMap<String, Value>>,
 }
+
+pub type Invocation = _IncomingRequest;
+pub type Event = _IncomingRequest;
 
 #[derive(Debug, Default)]
 pub struct Yield {
     pub args: Option<Vec<Value>>,
     pub kwargs: Option<HashMap<String, Value>>,
-}
-
-#[derive(Debug)]
-pub struct Event {
-    pub args: Option<Vec<Value>>,
-    pub kwargs: Option<HashMap<String, Value>>,
-    pub details: Option<HashMap<String, Value>>,
 }
 
 #[derive(Debug, Default)]
