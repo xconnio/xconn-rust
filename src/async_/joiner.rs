@@ -1,7 +1,7 @@
 use crate::async_::peer::Peer;
 use crate::async_::rawsocket::connect_rawsocket;
 use crate::async_::websocket::WebSocketPeer;
-use crate::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
+use crate::common::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use futures_util::{StreamExt, TryFutureExt};
 use http::Uri;
 use std::str::FromStr;

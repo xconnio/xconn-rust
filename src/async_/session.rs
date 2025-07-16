@@ -1,5 +1,5 @@
 use crate::async_::peer::Peer;
-use crate::types::{
+use crate::common::types::{
     CallRequest, CallResponse, Error, Event as XEvent, Invocation as XInvocation, PublishRequest, PublishResponse,
     RegisterResponse, SessionDetails, SubscribeResponse, WampError,
 };

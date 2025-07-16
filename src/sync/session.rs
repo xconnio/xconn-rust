@@ -1,9 +1,9 @@
-use crate::sync::peer::Peer;
-use crate::sync::types::{EventFn, RegisterFn, RegisterRequest, SubscribeRequest};
-use crate::types::{
+use crate::common::types::{
     CallRequest, CallResponse, Error, Event as XEvent, Invocation as XInvocation, PublishRequest, PublishResponse,
     RegisterResponse, SessionDetails, SubscribeResponse, WampError,
 };
+use crate::sync::peer::Peer;
+use crate::sync::types::{EventFn, RegisterFn, RegisterRequest, SubscribeRequest};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;

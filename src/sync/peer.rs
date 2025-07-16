@@ -1,4 +1,4 @@
-use crate::types::{Error, TransportType};
+use crate::common::types::{Error, TransportType};
 use std::fmt::Debug;
 
 pub trait Peer: Debug + Send + Sync {

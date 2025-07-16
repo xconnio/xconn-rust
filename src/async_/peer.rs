@@ -1,4 +1,4 @@
-use crate::types::{Error, TransportType};
+use crate::common::types::{Error, TransportType};
 use async_trait::async_trait;
 use std::fmt::Debug;
 

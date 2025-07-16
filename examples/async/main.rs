@@ -1,7 +1,6 @@
 use xconn::async_::client::connect_anonymous;
 use xconn::async_::session::Session;
-use xconn::async_::types::{RegisterRequest, SubscribeRequest};
-use xconn::types::{CallRequest, Event, Invocation, PublishRequest, Yield};
+use xconn::async_::types::{CallRequest, Event, Invocation, PublishRequest, RegisterRequest, SubscribeRequest, Yield};
 
 #[tokio::main]
 async fn main() {
