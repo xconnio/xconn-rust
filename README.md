@@ -13,12 +13,10 @@ async fn main() {
         .unwrap_or_else(|e| panic!("{e}"));
 
     // build a call request
-    let call_request = CallRequest::new("com.genki.echo")
-        .with_arg(1)
-        .with_kwarg("name", "Robot");
+    let request = CallRequest::new("com.genki.echo").arg(1).kwarg("name", "Robot");
 
     // pass the request and get the response.
-    let response = session.call(call_request).await.unwrap();
+    let response = session.call(request).await.unwrap();
     println!("args={:?}, kwargs={:?}", response.args, response.kwargs);
 }
 ```

@@ -9,13 +9,13 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 
 use wampproto::idgen::SessionScopeIDGenerator;
-use wampproto::messages::call::{Call, MESSAGE_TYPE_CALL};
+use wampproto::messages::call::MESSAGE_TYPE_CALL;
 use wampproto::messages::error::{Error as ErrorMsg, MESSAGE_TYPE_ERROR};
 use wampproto::messages::event::{Event, MESSAGE_TYPE_EVENT};
 use wampproto::messages::goodbye::{Goodbye, MESSAGE_TYPE_GOODBYE};
 use wampproto::messages::invocation::{Invocation, MESSAGE_TYPE_INVOCATION};
 use wampproto::messages::message::Message;
-use wampproto::messages::publish::{MESSAGE_TYPE_PUBLISH, Publish};
+use wampproto::messages::publish::MESSAGE_TYPE_PUBLISH;
 use wampproto::messages::published::{MESSAGE_TYPE_PUBLISHED, Published};
 use wampproto::messages::register::{MESSAGE_TYPE_REGISTER, Register};
 use wampproto::messages::registered::{MESSAGE_TYPE_REGISTERED, Registered};
@@ -336,13 +336,7 @@ impl Session {
 
     pub fn call(&self, request: CallRequest) -> Result<CallResponse, Error> {
         let request_id = self.idgen.next_id();
-        let msg = Call {
-            request_id,
-            options: request.options().clone(),
-            procedure: request.uri(),
-            args: Some(request.args().clone()),
-            kwargs: Some(request.kwargs().clone()),
-        };
+        let msg = request.to_call(request_id);
 
         let (sender, receiver): (mpsc::Sender<CallResponse>, mpsc::Receiver<CallResponse>) = mpsc::channel();
         let to_send = self
@@ -371,13 +365,7 @@ impl Session {
 
     pub fn publish(&self, request: PublishRequest) -> Result<Option<PublishResponse>, Error> {
         let request_id = self.idgen.next_id();
-        let msg = Publish {
-            request_id,
-            options: request.options().clone(),
-            topic: request.uri(),
-            args: Some(request.args().clone()),
-            kwargs: Some(request.kwargs().clone()),
-        };
+        let msg = request.to_publish(request_id);
 
         let acknowledge = {
             if let Some(Value::Bool(acknowledge)) = msg.options.get("acknowledge") {

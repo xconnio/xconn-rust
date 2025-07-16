@@ -17,9 +17,7 @@ fn main() {
         Err(e) => println!("{e}"),
     }
 
-    let call_request = CallRequest::new("com.genki.echo")
-        .with_arg(1)
-        .with_kwarg("name", "Robot");
+    let call_request = CallRequest::new("com.genki.echo").arg(1).kwarg("name", "Robot");
 
     match session.call(call_request) {
         Ok(response) => println!("{response:?}"),
@@ -37,8 +35,8 @@ fn main() {
     }
 
     let publish_request = PublishRequest::new("com.genki.event")
-        .with_arg("hey there!")
-        .with_option("acknowledge", true);
+        .arg("hey there!")
+        .option("acknowledge", true);
 
     match session.publish(publish_request) {
         Ok(response) => println!("{response:?}"),
