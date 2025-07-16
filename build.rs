@@ -1,4 +1,11 @@
 fn main() {
+    // when developing xconn itself, allow to install both variants
+    // of the library.
+    let crate_name = std::env::var("CARGO_PKG_NAME").unwrap();
+    if crate_name == "xconn" {
+        return;
+    }
+
     let sync = std::env::var("CARGO_FEATURE_SYNC").is_ok();
     let async_ = std::env::var("CARGO_FEATURE_ASYNC").is_ok();
 
