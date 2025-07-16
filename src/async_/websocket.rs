@@ -1,5 +1,5 @@
 use crate::async_::peer::Peer;
-use crate::types::{Error, TRANSPORT_WEB_SOCKET, TransportType};
+use crate::common::types::{Error, TRANSPORT_WEB_SOCKET, TransportType};
 use async_trait::async_trait;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{SinkExt, StreamExt};

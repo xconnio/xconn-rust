@@ -1,4 +1,3 @@
-use crate::types::{Event, Invocation, Yield};
 use std::collections::HashMap;
 use wampproto::messages::types::Value;
 
@@ -83,3 +82,6 @@ impl RegisterRequest {
         self.callback
     }
 }
+
+// Re-export
+pub use crate::common::types::*;
