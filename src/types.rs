@@ -6,6 +6,7 @@ use wampproto::serializers::cbor::CBORSerializer;
 use wampproto::serializers::json::JSONSerializer;
 use wampproto::serializers::msgpack::MsgPackSerializer;
 use wampproto::serializers::serializer::Serializer;
+use wampproto::transports::rawsocket::SerializerID;
 
 #[derive(Debug)]
 pub struct Error {
@@ -63,18 +64,42 @@ impl SessionDetails {
     }
 }
 
-pub trait WSSerializerSpec: Debug + Sync + Send {
+pub trait _SerializerSpec: Debug + Sync + Send {
     fn subprotocol(&self) -> String;
+    fn serializer_id(&self) -> SerializerID;
     fn serializer(&self) -> Box<dyn Serializer>;
     fn is_binary(&self) -> bool;
+}
+
+pub trait SerializerSpec: _SerializerSpec {
+    fn clone_box(&self) -> Box<dyn SerializerSpec>;
+}
+
+impl<T> SerializerSpec for T
+where
+    T: _SerializerSpec + Clone + 'static,
+{
+    fn clone_box(&self) -> Box<dyn SerializerSpec> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn SerializerSpec> {
+    fn clone(&self) -> Self {
+        self.clone_box()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct JSONSerializerSpec;
 
-impl WSSerializerSpec for JSONSerializerSpec {
+impl _SerializerSpec for JSONSerializerSpec {
     fn subprotocol(&self) -> String {
         "wamp.2.json".to_string()
+    }
+
+    fn serializer_id(&self) -> SerializerID {
+        SerializerID::JSON
     }
 
     fn serializer(&self) -> Box<dyn Serializer> {
@@ -89,9 +114,13 @@ impl WSSerializerSpec for JSONSerializerSpec {
 #[derive(Debug, Clone, Default)]
 pub struct CBORSerializerSpec;
 
-impl WSSerializerSpec for CBORSerializerSpec {
+impl _SerializerSpec for CBORSerializerSpec {
     fn subprotocol(&self) -> String {
         "wamp.2.cbor".to_string()
+    }
+
+    fn serializer_id(&self) -> SerializerID {
+        SerializerID::CBOR
     }
 
     fn serializer(&self) -> Box<dyn Serializer> {
@@ -106,9 +135,13 @@ impl WSSerializerSpec for CBORSerializerSpec {
 #[derive(Debug, Clone, Default)]
 pub struct MsgPackSerializerSpec;
 
-impl WSSerializerSpec for MsgPackSerializerSpec {
+impl _SerializerSpec for MsgPackSerializerSpec {
     fn subprotocol(&self) -> String {
         "wamp.2.msgpack".to_string()
+    }
+
+    fn serializer_id(&self) -> SerializerID {
+        SerializerID::MSGPACK
     }
 
     fn serializer(&self) -> Box<dyn Serializer> {
