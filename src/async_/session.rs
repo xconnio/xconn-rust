@@ -362,7 +362,7 @@ impl Session {
         let msg = Call {
             request_id,
             options: request.options().clone(),
-            procedure: request.procedure(),
+            procedure: request.uri(),
             args: Some(request.args().clone()),
             kwargs: Some(request.kwargs().clone()),
         };
@@ -400,7 +400,7 @@ impl Session {
         let msg = Publish {
             request_id,
             options: request.options().clone(),
-            topic: request.topic(),
+            topic: request.uri(),
             args: Some(request.args().clone()),
             kwargs: Some(request.kwargs().clone()),
         };
