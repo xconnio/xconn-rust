@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::pin::Pin;
 use std::sync::Arc;
-use wampproto::messages::types::Value;
 
 type RegisterCallbackType = dyn Fn(Invocation) -> Pin<Box<dyn Future<Output = Yield> + Send>> + Send + Sync;
 type EventCallbackType = dyn Fn(Event) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync;

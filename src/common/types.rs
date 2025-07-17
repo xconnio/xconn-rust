@@ -3,7 +3,7 @@ use std::fmt;
 use std::fmt::Debug;
 use wampproto::messages::call::Call;
 use wampproto::messages::publish::Publish;
-use wampproto::messages::types::Value;
+pub use wampproto::messages::types::Value;
 use wampproto::serializers::cbor::CBORSerializer;
 use wampproto::serializers::json::JSONSerializer;
 use wampproto::serializers::msgpack::MsgPackSerializer;
@@ -233,9 +233,9 @@ impl PublishRequest {
 
 #[derive(Debug)]
 pub struct _IncomingRequest {
-    pub args: Option<Vec<Value>>,
-    pub kwargs: Option<HashMap<String, Value>>,
-    pub details: Option<HashMap<String, Value>>,
+    pub args: Vec<Value>,
+    pub kwargs: HashMap<String, Value>,
+    pub details: HashMap<String, Value>,
 }
 
 pub type Invocation = _IncomingRequest;
@@ -243,8 +243,63 @@ pub type Event = _IncomingRequest;
 
 #[derive(Debug, Default)]
 pub struct Yield {
-    pub args: Option<Vec<Value>>,
-    pub kwargs: Option<HashMap<String, Value>>,
+    pub args: Vec<Value>,
+    pub kwargs: HashMap<String, Value>,
+    pub error: Option<WampError>,
+}
+
+impl Yield {
+    pub fn new(args: Vec<Value>, kwargs: HashMap<String, Value>) -> Self {
+        Self {
+            args,
+            kwargs,
+            error: None,
+        }
+    }
+
+    pub fn args(args: Vec<Value>) -> Self {
+        Self {
+            args,
+            kwargs: Default::default(),
+            error: None,
+        }
+    }
+
+    pub fn arg<T: Into<Value>>(arg: T) -> Self {
+        Self {
+            args: vec![arg.into()],
+            kwargs: Default::default(),
+            error: None,
+        }
+    }
+
+    pub fn kwarg<T: Into<Value>>(key: &str, value: T) -> Self {
+        Self {
+            args: Default::default(),
+            kwargs: HashMap::from([(key.to_string(), value.into())]),
+            error: None,
+        }
+    }
+
+    pub fn kwargs(kwargs: HashMap<String, Value>) -> Self {
+        Self {
+            args: vec![],
+            kwargs,
+            error: None,
+        }
+    }
+
+    pub fn error(uri: &str) -> Self {
+        Self {
+            args: Default::default(),
+            kwargs: Default::default(),
+            error: Some(WampError {
+                uri: uri.to_string(),
+                args: Default::default(),
+                kwargs: Default::default(),
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Default)]

@@ -169,9 +169,9 @@ impl Session {
                 }
 
                 let inv = XInvocation {
-                    args: invocation.args.clone(),
-                    kwargs: invocation.kwargs.clone(),
-                    details: Some(invocation.details.clone()),
+                    args: invocation.args.clone().map_or_else(Default::default, |args| args),
+                    kwargs: invocation.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                    details: invocation.details.clone(),
                 };
 
                 let request_id = invocation.request_id;
@@ -181,8 +181,8 @@ impl Session {
                     let yield_ = Yield {
                         request_id,
                         options: Default::default(),
-                        args: response.args,
-                        kwargs: response.kwargs,
+                        args: Some(response.args),
+                        kwargs: Some(response.kwargs),
                     };
 
                     match proto.send_message(Box::new(yield_)) {
@@ -227,9 +227,9 @@ impl Session {
                 let subscriptions = state.subscriptions.lock().unwrap();
                 if let Some(callback) = subscriptions.get(&event.subscription_id) {
                     let xevent = XEvent {
-                        args: event.args.clone(),
-                        kwargs: event.kwargs.clone(),
-                        details: Some(event.details.clone()),
+                        args: event.args.clone().map_or_else(Default::default, |args| args),
+                        kwargs: event.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                        details: event.details.clone(),
                     };
 
                     let callback = *callback;

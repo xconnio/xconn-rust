@@ -955,6 +955,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_bytes"
+version = "0.11.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8437fd221bde2d4ca316d61b90e337e9e702b3820b87d63caa9ba6c02bd06d96"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_cbor"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1253,7 +1262,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "wampproto"
 version = "0.1.0"
-source = "git+ssh://git@github.com/genki-robotics/wampproto-rust.git?rev=049928a52e8b4c54c4bf187c00c9b2ac2aecdb91#049928a52e8b4c54c4bf187c00c9b2ac2aecdb91"
+source = "git+ssh://git@github.com/genki-robotics/wampproto-rust.git?rev=96c886ceaae556b9f36c63101e98a564b37ad237#96c886ceaae556b9f36c63101e98a564b37ad237"
 dependencies = [
  "base64",
  "ed25519-dalek",
@@ -1261,6 +1270,7 @@ dependencies = [
  "hmac",
  "rmp-serde",
  "serde",
+ "serde_bytes",
  "serde_cbor",
  "serde_json",
  "sha2",
