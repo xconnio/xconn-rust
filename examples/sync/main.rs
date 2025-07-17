@@ -5,10 +5,7 @@ fn main() {
     let session = connect_anonymous("ws://localhost:8080/ws", "realm1").unwrap_or_else(|e| panic!("{e}"));
 
     fn registration_handler(inv: Invocation) -> Yield {
-        Yield {
-            args: inv.args,
-            kwargs: inv.kwargs,
-        }
+        Yield::new(inv.args, inv.kwargs)
     }
 
     let register_request = RegisterRequest::new("com.genki.echo", registration_handler);
