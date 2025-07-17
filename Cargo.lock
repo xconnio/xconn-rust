@@ -1262,7 +1262,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "wampproto"
 version = "0.1.0"
-source = "git+ssh://git@github.com/genki-robotics/wampproto-rust.git?rev=96c886ceaae556b9f36c63101e98a564b37ad237#96c886ceaae556b9f36c63101e98a564b37ad237"
+source = "git+ssh://git@github.com/genki-robotics/wampproto-rust.git?rev=612aadea0f2c28468832b0acede99d0eabef15e4#612aadea0f2c28468832b0acede99d0eabef15e4"
 dependencies = [
  "base64",
  "ed25519-dalek",
