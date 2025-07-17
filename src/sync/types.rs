@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use wampproto::messages::types::Value;
 
 pub type EventFn = fn(Event);
 pub type RegisterFn = fn(Invocation) -> Yield;
