@@ -8,10 +8,7 @@ async fn main() {
         .unwrap_or_else(|e| panic!("{e}"));
 
     async fn registration_handler(inv: Invocation) -> Yield {
-        Yield {
-            args: inv.args,
-            kwargs: inv.kwargs,
-        }
+        Yield::new(inv.args, inv.kwargs)
     }
 
     let register_request = RegisterRequest::new("io.xconn.echo", registration_handler);
