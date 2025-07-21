@@ -1,11 +1,10 @@
 use crate::common::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use crate::sync::peer::Peer;
 use crate::sync::websocket::WebSocketPeer;
-use http::Uri;
-use std::str::FromStr;
-use tungstenite::ClientRequestBuilder;
-use tungstenite::client::connect_with_config;
-use tungstenite::protocol::WebSocketConfig;
+use std::net::{TcpStream, ToSocketAddrs};
+use tungstenite::client::IntoClientRequest;
+use tungstenite::{ClientHandshake, ClientRequestBuilder};
+use url::Url;
 use wampproto::authenticators::anonymous::AnonymousAuthenticator;
 use wampproto::authenticators::authenticator::ClientAuthenticator;
 use wampproto::joiner;
@@ -25,6 +24,53 @@ impl Default for WebSocketJoiner {
     }
 }
 
+/// This function opens a tcp stream, and upgrades that to websocket.
+/// It then returns the tcp socket itself so that it can be used for doing
+/// multithreaded IO.
+fn connect_and_upgrade(addr: &str, subprotocol: &str) -> Result<TcpStream, Error> {
+    // Parse URI and extract host/port
+    let uri = addr
+        .parse::<Url>()
+        .map_err(|e| Error::new(format!("Invalid URI: {e}")))?;
+
+    let host = uri
+        .host_str()
+        .ok_or_else(|| Error::new("Missing host in URI".to_string()))?;
+
+    let port = uri
+        .port_or_known_default()
+        .ok_or_else(|| Error::new("Missing or invalid port".to_string()))?;
+
+    // Connect to the socket
+    let socket_addr = (host, port)
+        .to_socket_addrs()
+        .map_err(|e| Error::new(format!("Failed to resolve address: {e}")))?
+        .next()
+        .ok_or_else(|| Error::new("Could not resolve any addresses".to_string()))?;
+
+    let stream = TcpStream::connect(socket_addr).map_err(|e| Error::new(format!("Connection failed: {e}")))?;
+
+    // Perform WebSocket handshake
+    let request = ClientRequestBuilder::new(uri.as_str().parse().unwrap()).with_sub_protocol(subprotocol);
+
+    let handshake = ClientHandshake::start(
+        stream
+            .try_clone()
+            .map_err(|e| Error::new(format!("Failed to clone stream: {e}")))?,
+        request
+            .into_client_request()
+            .map_err(|e| Error::new(format!("Invalid client request: {e}")))?,
+        None,
+    )
+    .map_err(|e| Error::new(format!("Handshake initialization failed: {e}")))?;
+
+    handshake
+        .handshake()
+        .map_err(|e| Error::new(format!("Handshake failed: {e}")))?;
+
+    Ok(stream)
+}
+
 impl WebSocketJoiner {
     pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
         Self {
@@ -34,13 +80,8 @@ impl WebSocketJoiner {
     }
 
     pub fn join(&self, uri: &str, realm: &str) -> Result<(Box<dyn Peer>, SessionDetails), Error> {
-        let uri = Uri::from_str(uri).unwrap();
-        let request = ClientRequestBuilder::new(uri).with_sub_protocol(self.serializer.subprotocol());
-        let config = Some(WebSocketConfig::default());
-
-        let (conn, _) =
-            connect_with_config(request, config, 1).map_err(|e| Error::new(format!("failed to connect: {e}")))?;
-        let peer = WebSocketPeer::new(conn, self.serializer.is_binary());
+        let conn = connect_and_upgrade(uri, self.serializer.subprotocol().as_str())?;
+        let peer = WebSocketPeer::try_new(conn, self.serializer.is_binary())?;
         let auth = self.authenticator.clone();
         join(peer, realm, self.serializer.serializer(), auth)
     }

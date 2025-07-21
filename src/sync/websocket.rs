@@ -1,21 +1,15 @@
 use crate::common::types::{Error, TRANSPORT_WEB_SOCKET, TransportType};
 use crate::sync::peer::Peer;
-use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
+use mio::net::TcpStream as MioTcpStream;
+use mio::{Events, Interest, Poll, Token};
 use std::fmt::Debug;
 use std::net::TcpStream;
-use std::os::fd::{AsRawFd, BorrowedFd, RawFd};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
-use tungstenite::stream::MaybeTlsStream;
+use tungstenite::protocol::Role;
 use tungstenite::{Bytes, Message, Utf8Bytes, WebSocket};
 
-fn extract_raw_fd(stream: &MaybeTlsStream<TcpStream>) -> Option<RawFd> {
-    match stream {
-        MaybeTlsStream::Plain(tcp_stream) => Some(tcp_stream.as_raw_fd()),
-        MaybeTlsStream::NativeTls(tls_stream) => Some(tls_stream.get_ref().as_raw_fd()),
-        _ => None,
-    }
-}
+const CLIENT: Token = Token(0);
 
 #[derive(Debug, Clone)]
 pub struct WebSocketPeer {
@@ -52,31 +46,33 @@ impl Peer for WebSocketPeer {
     }
 }
 
-#[allow(clippy::new_ret_no_self)]
 impl WebSocketPeer {
-    pub fn new(conn: WebSocket<MaybeTlsStream<TcpStream>>, binary: bool) -> Box<dyn Peer> {
-        let conn = Arc::new(Mutex::new(conn));
-        let ws_writer = Arc::clone(&conn);
-        let ws_reader = Arc::clone(&conn);
+    pub fn try_new(stream: TcpStream, binary: bool) -> Result<Box<dyn Peer>, Error> {
+        let stream_copy = stream
+            .try_clone()
+            .map_err(|e| Error::new(format!("clone error: {e}")))?;
+        let mio_stream = MioTcpStream::from_std(stream_copy);
+        let mut mio_stream_b = MioTcpStream::from_std(stream);
+
+        let ws = WebSocket::from_raw_socket(mio_stream, Role::Client, None);
+        let ws_conn = Arc::new(Mutex::new(ws));
+        let ws_writer = Arc::clone(&ws_conn);
+        let ws_reader = Arc::clone(&ws_conn);
 
         let (front_writer, background_reader): (mpsc::Sender<Message>, mpsc::Receiver<Message>) = mpsc::channel();
         let (background_writer, front_reader): (mpsc::Sender<Message>, mpsc::Receiver<Message>) = mpsc::channel();
 
-        thread::spawn(move || unsafe {
-            let raw_fd: BorrowedFd = {
-                let sock = ws_reader.lock().unwrap();
-                let raw_fd = extract_raw_fd(sock.get_ref());
-                BorrowedFd::borrow_raw(raw_fd.unwrap())
-            };
+        let mut poll = Poll::new().map_err(|e| Error::new(format!("poll error: {e}")))?;
+        poll.registry()
+            .register(&mut mio_stream_b, CLIENT, Interest::READABLE | Interest::WRITABLE)
+            .map_err(|e| Error::new(format!("register error: {e}")))?;
+        let mut events = Events::with_capacity(1024);
 
+        thread::spawn(move || {
             loop {
-                let mut fds = [PollFd::new(raw_fd, PollFlags::POLLIN)];
-                match poll(&mut fds, PollTimeout::MAX) {
-                    Ok(0) => {
-                        // Not data yet.
-                        continue;
-                    }
-                    Ok(_) => {
+                poll.poll(&mut events, None).unwrap();
+                for event in events.iter() {
+                    if event.token() == CLIENT && event.is_readable() {
                         let msg_result = {
                             let mut sock = ws_reader.lock().unwrap();
                             sock.read()
@@ -89,11 +85,6 @@ impl WebSocketPeer {
                                 break;
                             }
                         }
-                    }
-
-                    Err(e) => {
-                        eprintln!("[Reader] Error: {e}");
-                        break;
                     }
                 }
             }
@@ -109,11 +100,11 @@ impl WebSocketPeer {
             }
         });
 
-        Box::new(Self {
+        Ok(Box::new(Self {
             kind: TRANSPORT_WEB_SOCKET,
             reader: Arc::new(Mutex::new(front_reader)),
             writer: Arc::new(front_writer),
             binary,
-        })
+        }))
     }
 }
