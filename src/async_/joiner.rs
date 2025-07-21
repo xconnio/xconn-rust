@@ -3,8 +3,6 @@ use crate::async_::rawsocket::connect_rawsocket;
 use crate::async_::websocket::WebSocketPeer;
 use crate::common::types::{Error, JSONSerializerSpec, SerializerSpec, SessionDetails};
 use futures_util::{StreamExt, TryFutureExt};
-use http::Uri;
-use std::str::FromStr;
 use tokio_tungstenite::connect_async_with_config;
 use tungstenite::ClientRequestBuilder;
 use tungstenite::protocol::WebSocketConfig;
@@ -36,7 +34,7 @@ impl WebSocketJoiner {
     }
 
     pub async fn join(&self, uri: &str, realm: &str) -> Result<(Box<dyn Peer>, SessionDetails), Error> {
-        let uri = Uri::from_str(uri).unwrap();
+        let uri = uri.parse().unwrap();
         let request = ClientRequestBuilder::new(uri).with_sub_protocol(self.serializer.subprotocol());
         let config = Some(WebSocketConfig::default());
 

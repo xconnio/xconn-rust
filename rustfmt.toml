@@ -1,1 +1,9 @@
+# Reorder imports within groups
+reorder_imports = true
+
+# Maximum width before wrapping
 max_width = 120
+
+# Other formatting options
+edition = "2024"
+use_small_heuristics = "Default"
