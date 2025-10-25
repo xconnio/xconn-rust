@@ -29,12 +29,11 @@ use wampproto::messages::unsubscribe::MESSAGE_TYPE_UNSUBSCRIBE;
 use wampproto::messages::unsubscribed::{MESSAGE_TYPE_UNSUBSCRIBED, Unsubscribed};
 use wampproto::messages::yield_::Yield;
 use wampproto::serializers::serializer::Serializer;
-use wampproto::session::Session as ProtoSession;
 
 #[derive(Debug)]
 pub struct Session {
     _details: SessionDetails,
-    proto: Arc<ProtoSession>,
+    serializer: Arc<Box<dyn Serializer>>,
     idgen: SessionScopeIDGenerator,
     peer: Arc<Box<dyn Peer>>,
 
@@ -80,8 +79,8 @@ impl Default for State {
 
 impl Session {
     pub fn new(details: SessionDetails, peer: Box<dyn Peer>, serializer: Box<dyn Serializer>) -> Self {
-        let stored_proto = Arc::new(ProtoSession::new(serializer));
-        let task_proto = stored_proto.clone();
+        let stored_serializer = Arc::new(serializer);
+        let task_serializer = stored_serializer.clone();
 
         let stored_state = Arc::new(State::default());
         let task_state = stored_state.clone();
@@ -94,12 +93,12 @@ impl Session {
 
         tokio::spawn(async move {
             while let Ok(payload) = task_peer.read().await {
-                match task_proto.receive(payload) {
+                match task_serializer.deserialize(payload) {
                     Ok(msg) => {
                         Self::process_incoming_message(
                             msg,
                             task_state.clone(),
-                            task_proto.clone(),
+                            task_serializer.clone(),
                             task_peer.clone(),
                             goodbye_sender.clone(),
                             exit_sender.clone(),
@@ -117,7 +116,7 @@ impl Session {
         Self {
             _details: details,
             peer: stored_peer,
-            proto: stored_proto,
+            serializer: stored_serializer,
             idgen: SessionScopeIDGenerator::new(),
 
             state: stored_state,
@@ -129,7 +128,7 @@ impl Session {
     async fn process_incoming_message(
         msg: Box<dyn Message>,
         state: Arc<State>,
-        proto: Arc<ProtoSession>,
+        serializer: Arc<Box<dyn Serializer>>,
         peer: Arc<Box<dyn Peer>>,
         goodbye_sender: mpsc::Sender<()>,
         exist_sender: mpsc::Sender<()>,
@@ -194,7 +193,7 @@ impl Session {
                         kwargs: Some(response.kwargs),
                     };
 
-                    match proto.send_message(Box::new(yield_)) {
+                    match serializer.serialize(&yield_) {
                         Ok(to_send) => match peer.write(to_send).await {
                             Ok(()) => {}
                             Err(e) => {
@@ -363,8 +362,8 @@ impl Session {
 
         let (sender, mut receiver): (mpsc::Sender<CallResponse>, mpsc::Receiver<CallResponse>) = mpsc::channel(1);
         let to_send = self
-            .proto
-            .send_message(Box::new(msg))
+            .serializer
+            .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
         {
@@ -394,8 +393,8 @@ impl Session {
         };
 
         let to_send = self
-            .proto
-            .send_message(Box::new(msg))
+            .serializer
+            .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
         if acknowledge {
@@ -440,8 +439,8 @@ impl Session {
             mpsc::channel(1);
 
         let to_send = self
-            .proto
-            .send_message(Box::new(msg))
+            .serializer
+            .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
         {
@@ -476,8 +475,8 @@ impl Session {
             mpsc::channel(1);
 
         let to_send = self
-            .proto
-            .send_message(Box::new(msg))
+            .serializer
+            .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
         {
@@ -507,8 +506,8 @@ impl Session {
         };
 
         let to_send = self
-            .proto
-            .send_message(Box::new(msg))
+            .serializer
+            .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
         self.peer
