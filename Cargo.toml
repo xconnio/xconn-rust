@@ -5,13 +5,13 @@ edition = "2024"
 build = "build.rs"
 
 [features]
-default = ["async"]   # Default to sync unless otherwise requested
+default = ["async", "sync"]
 sync = ["mio"]
 async = ["tokio", "tokio-tungstenite", "futures-util", "async-trait"]
 
 [dependencies]
 # base dependencies
-wampproto = { git = "https://github.com/xconnio/wampproto-rust.git", rev = "9aba2d40844af96c04422b77e3ecd7724ca896b8" }
+wampproto = { git = "https://github.com/xconnio/wampproto-rust.git", rev = "535b34522ecf030276ef4ce6be226cf2aefb9a9a" }
 tungstenite = {  version = "0.27.0", features = ["native-tls"] }
 url = { version = "2.5.4" }
 

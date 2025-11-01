@@ -1,8 +1,8 @@
-lint-check:
+lint:
 	cargo fmt -- --check
 	cargo clippy --all-targets --all-features -- -D warnings
 
-lint-format:
+format:
 	cargo fmt --
 
 run:
