@@ -5,7 +5,8 @@ use crate::common::types::{
 };
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{Mutex, mpsc, oneshot, watch};
+use tokio::task::JoinHandle;
 
 use crate::async_::types::{EventFn, RegisterFn, RegisterRequest, SubscribeRequest};
 use wampproto::idgen::SessionScopeIDGenerator;
@@ -38,8 +39,8 @@ pub struct Session {
     peer: Arc<Box<dyn Peer>>,
 
     state: Arc<State>,
-    goodbye_receiver_channel: Mutex<mpsc::Receiver<()>>,
-    exist_receiver_channel: Mutex<mpsc::Receiver<()>>,
+    exit_watcher: watch::Receiver<bool>,
+    incoming_messages_handler: JoinHandle<()>,
 }
 
 #[derive(Debug)]
@@ -57,7 +58,7 @@ struct State {
     subscriptions: Mutex<HashMap<i64, EventFn>>,
 
     // goodbye stuff
-    goodbye_sent: Mutex<bool>,
+    goodbye_sender: Mutex<Option<oneshot::Sender<()>>>,
 }
 
 impl Default for State {
@@ -72,7 +73,7 @@ impl Default for State {
             unsubscribe_requests: Default::default(),
             subscriptions: Default::default(),
 
-            goodbye_sent: Mutex::new(false),
+            goodbye_sender: Mutex::new(None),
         }
     }
 }
@@ -88,22 +89,22 @@ impl Session {
         let stored_peer = Arc::new(peer);
         let task_peer = stored_peer.clone();
 
-        let (goodbye_sender, goodbye_receiver): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel(1);
-        let (exit_sender, exit_receiver): (mpsc::Sender<()>, mpsc::Receiver<()>) = mpsc::channel(1);
+        let (exit_sender, exit_receiver) = watch::channel(false);
 
-        tokio::spawn(async move {
+        let incoming_messages_handler = tokio::spawn(async move {
             while let Ok(payload) = task_peer.read().await {
                 match task_serializer.deserialize(payload) {
                     Ok(msg) => {
-                        Self::process_incoming_message(
+                        if !Self::process_incoming_message(
                             msg,
                             task_state.clone(),
                             task_serializer.clone(),
                             task_peer.clone(),
-                            goodbye_sender.clone(),
-                            exit_sender.clone(),
                         )
-                        .await;
+                        .await
+                        {
+                            break;
+                        }
                     }
                     Err(e) => {
                         eprintln!("Error: {e}");
@@ -111,6 +112,7 @@ impl Session {
                     }
                 }
             }
+            let _ = exit_sender.send(true);
         });
 
         Self {
@@ -120,8 +122,8 @@ impl Session {
             idgen: SessionScopeIDGenerator::new(),
 
             state: stored_state,
-            goodbye_receiver_channel: Mutex::new(goodbye_receiver),
-            exist_receiver_channel: Mutex::new(exit_receiver),
+            exit_watcher: exit_receiver,
+            incoming_messages_handler,
         }
     }
 
@@ -130,9 +132,7 @@ impl Session {
         state: Arc<State>,
         serializer: Arc<Box<dyn Serializer>>,
         peer: Arc<Box<dyn Peer>>,
-        goodbye_sender: mpsc::Sender<()>,
-        exist_sender: mpsc::Sender<()>,
-    ) {
+    ) -> bool {
         match msg.message_type() {
             MESSAGE_TYPE_REGISTERED => {
                 let registered = msg.as_any().downcast_ref::<Registered>().unwrap();
@@ -172,12 +172,12 @@ impl Session {
 
                 let callback = registrations.get(&invocation.registration_id).cloned();
                 if callback.is_none() {
-                    return;
+                    return true;
                 }
 
                 let inv = XInvocation {
-                    args: invocation.args.clone().map_or_else(Default::default, |args| args),
-                    kwargs: invocation.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                    args: invocation.args.clone().unwrap_or_else(Default::default),
+                    kwargs: invocation.kwargs.clone().unwrap_or_else(Default::default),
                     details: invocation.details.clone(),
                 };
 
@@ -237,8 +237,8 @@ impl Session {
                 let subscriptions = state.subscriptions.lock().await;
                 if let Some(callback) = subscriptions.get(&event.subscription_id) {
                     let xevent = XEvent {
-                        args: event.args.clone().map_or_else(Default::default, |args| args),
-                        kwargs: event.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                        args: event.args.clone().unwrap_or_else(Default::default),
+                        kwargs: event.kwargs.clone().unwrap_or_else(Default::default),
                         details: event.details.clone(),
                     };
 
@@ -345,15 +345,17 @@ impl Session {
                 }
             }
             MESSAGE_TYPE_GOODBYE => {
-                let goodbye_was_sent = { state.goodbye_sent.lock().await };
-                if *goodbye_was_sent {
-                    goodbye_sender.send(()).await.unwrap();
+                let sender = state.goodbye_sender.lock().await.take();
+                if let Some(s) = sender {
+                    let _ = s.send(());
                 }
 
-                exist_sender.send(()).await.unwrap();
+                return false;
             }
             _ => {}
         }
+
+        true
     }
 
     pub async fn call(&self, request: CallRequest) -> Result<CallResponse, Error> {
@@ -510,20 +512,25 @@ impl Session {
             .serialize(&msg)
             .map_err(|e| Error::new(format!("proto failed to parse message: {e}")))?;
 
+        let (sender, receiver) = oneshot::channel();
+        *self.state.goodbye_sender.lock().await = Some(sender);
+
         self.peer
             .write(to_send)
             .await
             .map_err(|e| Error::new(format!("failed to send message: {e}")))?;
 
-        self.goodbye_receiver_channel
-            .lock()
-            .await
-            .recv()
-            .await
-            .ok_or_else(|| Error::new("failed to send message"))
+        receiver.await.map_err(|_| Error::new("failed to receive goodbye"))
     }
 
     pub async fn wait_disconnect(&self) {
-        self.exist_receiver_channel.lock().await.recv().await;
+        let mut watcher = self.exit_watcher.clone();
+        let _ = watcher.wait_for(|&v| v).await;
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        self.incoming_messages_handler.abort();
     }
 }

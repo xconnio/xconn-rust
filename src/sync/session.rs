@@ -168,8 +168,8 @@ impl Session {
                 }
 
                 let inv = XInvocation {
-                    args: invocation.args.clone().map_or_else(Default::default, |args| args),
-                    kwargs: invocation.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                    args: invocation.args.clone().unwrap_or_else(Default::default),
+                    kwargs: invocation.kwargs.clone().unwrap_or_else(Default::default),
                     details: invocation.details.clone(),
                 };
 
@@ -226,8 +226,8 @@ impl Session {
                 let subscriptions = state.subscriptions.lock().unwrap();
                 if let Some(callback) = subscriptions.get(&event.subscription_id) {
                     let xevent = XEvent {
-                        args: event.args.clone().map_or_else(Default::default, |args| args),
-                        kwargs: event.kwargs.clone().map_or_else(Default::default, |kwargs| kwargs),
+                        args: event.args.clone().unwrap_or_else(Default::default),
+                        kwargs: event.kwargs.clone().unwrap_or_else(Default::default),
                         details: event.details.clone(),
                     };
 
