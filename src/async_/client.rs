@@ -31,6 +31,8 @@ impl Client {
             || uri.starts_with("rss://")
             || uri.starts_with("tcp://")
             || uri.starts_with("tcps://")
+            || uri.starts_with("unix://")
+            || uri.starts_with("unix+rs://")
         {
             let serializer = self.serializer.serializer();
             let joiner = RawSocketJoiner::new(self.serializer, self.authenticator);
