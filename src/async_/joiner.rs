@@ -13,7 +13,7 @@ use wampproto::serializers::serializer::Serializer;
 
 pub struct WebSocketJoiner {
     serializer: Box<dyn SerializerSpec>,
-    authenticator: Box<dyn ClientAuthenticator>,
+    authenticator: Box<dyn ClientAuthenticator + Send + Sync>,
 }
 
 impl Default for WebSocketJoiner {
@@ -26,7 +26,7 @@ impl Default for WebSocketJoiner {
 }
 
 impl WebSocketJoiner {
-    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator + Send + Sync>) -> Self {
         Self {
             serializer,
             authenticator,
@@ -52,7 +52,7 @@ pub async fn join(
     peer: Box<dyn Peer>,
     realm: &str,
     serializer: Box<dyn Serializer>,
-    authenticator: Box<dyn ClientAuthenticator>,
+    authenticator: Box<dyn ClientAuthenticator + Send + Sync>,
 ) -> Result<(Box<dyn Peer>, SessionDetails), Error> {
     let mut proto = joiner::Joiner::new(realm, serializer.clone(), authenticator);
 
@@ -89,7 +89,7 @@ pub async fn join(
 
 pub struct RawSocketJoiner {
     serializer: Box<dyn SerializerSpec>,
-    authenticator: Box<dyn ClientAuthenticator>,
+    authenticator: Box<dyn ClientAuthenticator + Send + Sync>,
 }
 
 impl Default for RawSocketJoiner {
@@ -102,7 +102,7 @@ impl Default for RawSocketJoiner {
 }
 
 impl RawSocketJoiner {
-    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator + Send + Sync>) -> Self {
         Self {
             serializer,
             authenticator,

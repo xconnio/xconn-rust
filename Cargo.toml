@@ -11,7 +11,7 @@ async = ["tokio", "tokio-tungstenite", "futures-util", "async-trait"]
 
 [dependencies]
 # base dependencies
-wampproto = { git = "https://github.com/xconnio/wampproto-rust.git", rev = "535b34522ecf030276ef4ce6be226cf2aefb9a9a" }
+wampproto = { git = "https://github.com/xconnio/wampproto-rust.git", rev = "520130fa02343409578879959748b36f151bbc8d" }
 tungstenite = {  version = "0.27.0", features = ["native-tls"] }
 url = { version = "2.5.4" }
 
