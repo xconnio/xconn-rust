@@ -10,11 +10,11 @@ use wampproto::authenticators::wampcra::WAMPCRAAuthenticator;
 
 pub struct Client {
     serializer: Box<dyn SerializerSpec>,
-    authenticator: Box<dyn ClientAuthenticator>,
+    authenticator: Box<dyn ClientAuthenticator + Send + Sync>,
 }
 
 impl Client {
-    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator>) -> Self {
+    pub fn new(serializer: Box<dyn SerializerSpec>, authenticator: Box<dyn ClientAuthenticator + Send + Sync>) -> Self {
         Self {
             serializer,
             authenticator,
