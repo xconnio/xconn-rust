@@ -25,8 +25,12 @@ impl Peer for WebSocketPeer {
 
     async fn read(&self) -> Result<Vec<u8>, Error> {
         let mut reader = self.reader.clone().lock_owned().await;
-        let out = reader.next().await.unwrap().unwrap();
-        Ok(out.into_data().to_vec())
+        let msg = reader
+            .next()
+            .await
+            .ok_or_else(|| Error::new("websocket stream closed".to_string()))?
+            .map_err(|e| Error::new(format!("websocket read error: {e}")))?;
+        Ok(msg.into_data().to_vec())
     }
 
     async fn write(&self, data: Vec<u8>) -> Result<(), Error> {
